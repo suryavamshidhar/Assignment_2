@@ -1,0 +1,296 @@
+---
+title: "Assignment 2"
+author: "Surya Vamshidhar Buneeti"
+date: "2024-02-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Summary
+1. Since k=1 in the provided data frame (new_customer) is classified as 0, he declines to take out the personal loan. 
+2. The ideal k value is 3, which strikes a compromise between over fitting and disregarding the predictor data.
+3. The validation set's confusion matrix with k=3 results is as follows: 48 errors in computation, 0.964 accuracy, 0.9950 sensitivity, and 0.6927 specificity 
+
+In the provided data frame (new_customer), k=3 is categorized as 0, hence he declines the personal loan. 
+5. Results of the training set confusion matrix: 59 Miscalculation, 0.9764 accuracy, 0.9978 sensitivity, and 0.7672 specificity were recorded in the calculations. 
+
+Results of the validation set confusion matrix: 48 Miscalculation, 0.968 accuracy, 0.9956 sensitivity, and 0.6912 specificity were made in the calculations. 
+
+Results of the testing set confusion matrix: 39 Miscalculation, 0.961 accuracy, 0.9955 sensitivity, and 0.6875 specificity     
+In conclusion, despite minor changes in metrics, the model performs well generally across the training, validation, and test sets. Notably, when we go from the training set to the validation and test sets, we find a discernible drop in specificity. This decline indicates that, when applied to unknown data, the model could be more likely to produce false positive predictions, which would classify cases as class 1 when they are actually class 0..
+    
+## Questions - Answers
+
+1. How would this customer be classified? when k=1
+
+ANS) This new customer is classified as 0, does not take the personal loan
+
+2. What is a choice of k?
+
+ANS) The best K is 3
+
+3. what are the results of confusion matrix for the validation data with k=3
+
+ANS) Miscalculations:48 Accuracy: 0.964 , Sensitivity : 0.9950, Specificity : 0.6927
+
+4. How would this customer be classified? when k=3
+
+ANS) This new customer is classified as 0, does not take the personal loan
+
+5. Compare the confusion matrix of the test set with that of the training and validation sets.
+
+ANS) Miscalculation: M=false positive + false negative
+
+Training set=59, Validation set=48, Testing set=39
+    
+Accuracy:
+    Training set=0.9764, Validation set=0.968, Testing set=0.961
+    
+The accuracy on the training set is slightly higher than on the validation and test sets, but all sets have high accuracy, indicating that the model performs well in terms of overall correctness.
+
+    
+Sensitivity:
+    Training set=0.9978, Validation set=0.9956, Testing set=0.9955
+   
+Sensitivity measures the model’s ability to detect the positive class (in this case, class 1) properly. All the sets have extremely high sensitivity, suggesting that the model is exceptionally good at spotting class 1 cases.
+
+    
+Specificity:
+    Training set=0.7672, Validation set=0.6912, Testing set=0.6875
+    
+Specificity measures the model’s ability to accurately identify the negative class (class 0 in this example). The training set has the maximum specificity, but the test and validation sets have lower specificity values, implying that the model is less accurate at recognizing class 0 occurrences.
+
+    
+
+## Problem Statement
+
+univarsal bank is a young bank growing rapidly in terms of overall customer acquisition.
+The majority of these customers are liability customers (depositors) with varying sizes of relationship with the bank. The customer base of asset customers (borrowers) is quite
+small, and the bank is interested in expanding this base rapidly in more loan business. In particular, it wants to explore ways of converting its liability customers to personal loan customers.
+
+A campaign that the bank ran last year for liability customers showed a healthy conversion rate of over 9% success. This has encouraged the retail marketing department to devise smarter campaigns with better target marketing. The goal is to use k-NN to predict whether a new customer will accept a loan offer. This will serve as the basis for the design of a new campaign.
+
+The file UniversalBank.csv contains data on 5000 customers. The data include customer
+demographic information (age, income, etc.), the customer’s relationship with the bank
+(mortgage, securities account, etc.), and the customer response to the last personal loan
+campaign (Personal Loan). Among these 5000 customers, only 480 (= 9.6%) accepted the
+personal loan that was offered to them in the earlier campaign.
+
+Partition the data into training (60%) and validation (40%) sets
+
+***
+
+### Data Import and Cleaning
+
+loaded the required libraries
+
+```{r}
+library(class)
+library(caret)
+library(e1071)
+```
+Read the data.
+
+```{r }
+df <- read.csv("UniversalBank.csv") #Assigning data to the variable
+dim(df)  
+t(t(names(df))) # The t function creates a transpose of the dataframe
+```
+Droped ID and ZIP
+```{r}
+df <- df[,-c(1,5)]
+```
+
+Split Data into 60% training and 40% validation. There are many ways to do this. We will look at 2 different ways. Before we split, let us transform categorical variables into dummy variables
+
+```{r}
+# Education converted into factor
+df$Education <- as.factor(df$Education)
+
+# converting Education into Dummy Variables
+
+groups <- dummyVars(~., data = df) # This creates the dummy groups
+s.df <- as.data.frame(predict(groups,df))
+colnames(s.df)
+
+#Split Data into 60% training and 40% validation
+
+set.seed(123)  # Important to ensure that we get the same sample if we rerun the code
+train.index <- sample(row.names(s.df), 0.6*dim(s.df)[1])
+valid.index <- setdiff(row.names(s.df), train.index)  
+train.df <- s.df[train.index,]
+valid.df <- s.df[valid.index,]
+t(t(names(train.df)))
+
+#Second approach
+#install.packages("caTools")
+library(caTools)
+set.seed(1)
+split <- sample.split(s.df, SplitRatio = 0.6)
+training_set <- subset(s.df, split == TRUE)
+validation_set <- subset(s.df, split == FALSE)
+
+# Print the sizes of the training and validation sets
+
+print(paste("The size of the training set is:", nrow(training_set)))
+print(paste("The size of the validation set is:", nrow(validation_set)))
+```
+nalizing the train data & validation data
+```{r}
+train.n.df <- train.df[,-10] # Note that Personal Income is the 10th variable
+valid.n.df <- valid.df[,-10]
+
+n.values <- preProcess(train.df[, -10], method=c("center", "scale"))
+train.n.df <- predict(n.values, train.df[, -10])
+valid.n.df <- predict(n.values, valid.df[, -10])
+```
+
+### Questions
+
+Consider the following customer:
+
+1. Age = 40, Experience = 10, Income = 84, Family = 2, CCAvg = 2, Education_1 = 0, Education_2 = 1, Education_3 = 0, Mortgage = 0, Securities Account = 0, CD Account = 0, Online = 1, and Credit Card = 1. Perform a k-NN classification with all predictors except ID and ZIP code using k = 1. Remember to transform categorical predictors with more than two categories into dummy variables first. Specify the success class as 1 (loan acceptance), and use the default cutoff value of 0.5. How would this customer be classified?
+
+```{r}
+# creating a new sample
+new_customer <- data.frame(
+  Age = 40,
+  Experience = 10,
+  Income = 84,
+  Family = 2,
+  CCAvg = 2,
+  Education.1 = 0,
+  Education.2 = 1,
+  Education.3 = 0,
+  Mortgage = 0,
+  Securities.Account = 0,
+  CD.Account = 0,
+  Online = 1,
+  CreditCard = 1
+)
+
+# nalize the new customer
+new.cust.n <- new_customer
+new.cust.n <- predict(n.values, new.cust.n)
+
+```
+
+predicting using knn
+```{r}
+
+knn.pred1 <- class::knn(train = train.n.df, 
+                       test = new.cust.n, 
+                       cl = train.df$Personal.Loan, k = 1, prob = TRUE)
+knn.pred1
+
+```
+
+
+2. What is a choice of k that balances between overfitting and ignoring the predictor information?
+
+```{r}
+# Calculating the accuracy for each value of k
+# Setting the range of k values to consider
+
+accuracy.df <- data.frame(k = seq(1, 15, 1), overallaccuracy = rep(0, 15))
+for(i in 1:15) {
+  knn.pred <- class::knn(train = train.n.df, 
+                         test = valid.n.df, 
+                         cl = train.df$Personal.Loan, k = i)
+  accuracy.df[i, 2] <- confusionMatrix(knn.pred, 
+                                       as.factor(valid.df$Personal.Loan),positive = "1")$overall[1]
+}
+accuracy.df
+
+which(accuracy.df[,2] == max(accuracy.df[,2])) 
+
+plot(accuracy.df$k,accuracy.df$overallaccuracy)
+
+```
+
+3. Show the confusion matrix for the validation data that results from using the best k.
+
+#creating confusion matrix for the validation data using k value as 3
+
+```{r}
+prediction_knn <- class::knn(train = train.n.df, test = valid.n.df,cl = train.df$Personal.Loan, k = 3, prob=TRUE)
+confusionMatrix(prediction_knn,as.factor(valid.df$Personal.Loan))
+```
+
+4. Consider the following customer: Age = 40, Experience = 10, Income = 84, Family = 2, CCAvg = 2, Education_1 = 0, Education_2 = 1, Education_3 = 0, Mortgage = 0, Securities Account = 0, CD Account = 0, Online = 1 and Credit Card = 1. Classify the customer using the best k.
+```{r}
+# creating a new sample
+new_customer <- data.frame(
+ Age = 40,
+ Experience = 10,
+ Income = 84,
+ Family = 2,
+ CCAvg = 2,
+ Education.1 = 0,
+ Education.2 = 1,
+ Education.3 = 0,
+ Mortgage = 0,
+ Securities.Account = 0,
+ CD.Account = 0,
+ Online = 1,
+ CreditCard = 1
+)
+# nalize the new customer
+new.cust.n <- new_customer
+new.cust.n <- predict(n.values, new.cust.n)
+
+knn.pred1 <- class::knn(train = train.n.df,
+ test = new.cust.n,
+cl = train.df$Personal.Loan, k = 3)
+knn.pred1
+
+```
+
+5.Repartition the data, this time into training, validation, and test sets (50% : 30% : 20%). Apply the k-NN method with the k chosen above. Compare the confusion matrix of the test set with that of the training and validation sets.Comment on the differences and their reason
+
+```{r}
+# Repartition the training, validation and test sets to 50,30, and 20 percents.
+set.seed(1)
+train.index = sample(row.names(s.df), 0.5*dim(s.df)[1])
+remaining.index = setdiff(row.names(s.df),train.index)
+valid.index = sample(remaining.index,0.3*dim(s.df)[1])
+test.index = setdiff(remaining.index,valid.index)
+
+#Loading the partitioned data into the dataframe.
+train.df = s.df[train.index,]
+valid.df= s.df[valid.index,]
+test.df = s.df[test.index,]
+
+#nalizing the data after repartitioning accordingly.
+train.n.df <- train.df[, -10]
+valid.n.df <- valid.df[, -10]
+test.n.df <- test.df[, -10]
+n.values <- preProcess(train.df[, -10], method = c("center", "scale"))
+train.n.df <- predict(n.values, train.df[, -10])
+valid.n.df <- predict(n.values, valid.df[, -10])
+test.n.df <- predict(n.values, test.df[, -10])
+
+#Applying the k-NN method to all the sets that we have using k value as 3.
+
+#Training set
+knn_train <- class::knn(train = train.n.df,test = train.n.df, cl = train.df$Personal.Loan, k =3)
+
+#Validation set
+knn_valid <- class::knn(train = train.n.df,test = valid.n.df,cl = train.df$Personal.Loan, k =3)
+
+#Test set
+knn_test <- class::knn(train = train.n.df,test = test.n.df, cl = train.df$Personal.Loan, k =3)
+
+#Confusion Matrix
+#Training set confusion matrix
+confusionMatrix(knn_train, as.factor(train.df$Personal.Loan))
+
+#Validation set confusion matrix
+confusionMatrix(knn_valid, as.factor(valid.df$Personal.Loan))
+
+#Testing set confusion matrix
+confusionMatrix(knn_test, as.factor(test.df$Personal.Loan))
+```
+
